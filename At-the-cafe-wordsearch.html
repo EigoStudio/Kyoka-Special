@@ -6,7 +6,7 @@
   <title>Word Search - At the Cafe</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Kosugi+Maru&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Balsamiq+Sans:wght@400;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
       /* カフェ風の配色 */
@@ -22,9 +22,17 @@
 
       --cell-size: 45px;
       --board-width: 540px;
+      
+      /* フォント設定: Chalkboardがあればそれを、なければBalsamiq Sansを使う */
+      --hand-font: 'Chalkboard SE', 'Chalkboard', 'Balsamiq Sans', 'Comic Neue', sans-serif;
     }
     body { font-family: 'Kosugi Maru', 'Nunito', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; background-color: #fdfaf6; padding: 20px; padding-bottom: 40px; }
-    h1 { display: table; margin: 0 auto 30px auto; font-size: 26px; font-weight: 700; color: var(--primary); border-bottom: 2px solid var(--primary); text-align: center; padding: 0 10px 5px 10px; order: 0; }
+    
+    /* タイトルに手書きフォントを適用 */
+    h1 { 
+      font-family: var(--hand-font); 
+      display: table; margin: 0 auto 30px auto; font-size: 28px; font-weight: 700; color: var(--primary); border-bottom: 2px solid var(--primary); text-align: center; padding: 0 10px 5px 10px; order: 0; 
+    }
     
     .controls { position: fixed; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
     button { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: var(--primary); color: white; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: opacity 0.2s; }
@@ -34,7 +42,13 @@
     
     #board { display: grid; grid-template-columns: repeat(12, var(--cell-size)); gap: 0; width: var(--board-width); background-color: #fff; touch-action: none; user-select: none; border: 1px solid #dcdcdc; isolation: isolate; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; }
     
-    .cell { width: var(--cell-size); height: var(--cell-size); line-height: var(--cell-size); font-size: 28px; text-align: center; font-weight: 700; font-family: 'Comic Neue', sans-serif; cursor: pointer; position: relative; color: #444; }
+    /* パズルの文字にも手書きフォントを適用 */
+    .cell { 
+      width: var(--cell-size); height: var(--cell-size); line-height: var(--cell-size); 
+      font-size: 28px; text-align: center; font-weight: 700; 
+      font-family: var(--hand-font); /* ここを変更 */
+      cursor: pointer; position: relative; color: #444; 
+    }
     .cell::after, .cell::before { content: ""; position: absolute; z-index: -1; mix-blend-mode: multiply; pointer-events: none; }
     .cell.h::after, .cell.temp-h::after { display: block; left: 0; right: 0; top: 15%; bottom: 15%; background-color: var(--marker-h); }
     .cell.v::before, .cell.temp-v::before { display: block; left: 15%; right: 15%; top: 0; bottom: 0; background-color: var(--marker-v); }
@@ -45,12 +59,16 @@
     .cell.show-ans { background-color: var(--correct); border-radius: 50%; color: #fff; }
     
     #word-list { display: flex; flex-direction: column; gap: 12px; min-width: 250px; }
-    .word-item { cursor: pointer; display: flex; align-items: center; font-size: 19px; padding: 4px; transition: color 0.2s; color: #555; }
+    
+    /* リストの英語部分に手書きフォントを適用 */
+    .word-item { 
+      cursor: pointer; display: flex; align-items: center; font-size: 22px; padding: 4px; transition: color 0.2s; color: #555; 
+      font-family: var(--hand-font); /* ここを変更 */
+    }
     .word-item:hover { color: var(--primary); }
     .word-item.checked { color: #ccc; text-decoration: line-through; }
-    .ja-text { font-size: 13px; color: #999; margin-left: 10px; font-weight: normal; }
+    .ja-text { font-size: 14px; color: #999; margin-left: 10px; font-weight: normal; font-family: 'Kosugi Maru', sans-serif; }
     
-    /* --- 新しいレイアウト用コンテナ (画像 + 会話) --- */
     .dialog-wrapper {
       display: flex;
       flex-direction: row;
@@ -64,19 +82,19 @@
     }
 
     .menu-image {
-      flex: 0 0 160px; /* 画像の幅を固定 */
+      flex: 0 0 160px;
     }
     
     .menu-image img {
       width: 100%;
       height: auto;
       border-radius: 8px;
-      border: 3px solid #333; /* アメコミ風の黒枠 */
+      border: 3px solid #333;
       box-shadow: 3px 3px 0px rgba(0,0,0,0.1);
     }
 
     #script-container { 
-      flex: 1; /* 残りの幅を埋める */
+      flex: 1; 
       border-top: 2px dashed #ddd; 
       padding-top: 20px; 
       position: relative; 
@@ -85,14 +103,17 @@
       border-radius: 10px; 
       box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
     }
-    /* ------------------------------------------- */
 
     .script-line { font-size: 19px; line-height: 2.5; color: #333; text-align: left; margin-bottom: 15px; }
     .speaker-name { font-weight: 800; display: inline-block; width: 90px; margin-right: 5px; }
     .speaker-waitress { color: var(--accent); }
     .speaker-customer { color: var(--secondary); }
     
-    .blank { display: inline-block; min-width: 60px; border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: bold; text-align: center; padding: 0 5px; transition: color 0.5s; }
+    /* 空欄のフォントも手書きに変更 */
+    .blank { 
+      display: inline-block; min-width: 60px; border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: bold; text-align: center; padding: 0 5px; transition: color 0.5s; 
+      font-family: var(--hand-font);
+    }
     .blank.hidden { color: transparent; }
     
     #read-aloud-section { text-align: center; margin: 20px 0; order: 3; display: none; }
@@ -103,17 +124,16 @@
 
     /* 📱 スマホ用 */
     @media screen and (max-width: 900px) {
-      h1 { font-size: 20px !important; margin-top: 50px !important; margin-bottom: 15px !important; }
+      h1 { font-size: 22px !important; margin-top: 50px !important; margin-bottom: 15px !important; }
       .game-main { flex-direction: column; align-items: center; gap: 20px; }
       :root { --cell-size: 7.5vw; --board-width: 90vw; }
       .cell { font-size: 5.5vw; }
       #word-list { display: grid; grid-template-columns: 1fr 1fr; width: 95%; gap: 5px 10px; margin-top: 10px; }
-      .word-item { font-size: 15px !important; line-height: 1.2; }
-      .ja-text { font-size: 11px !important; margin-left: 5px; display: block; }
+      .word-item { font-size: 18px !important; line-height: 1.2; }
+      .ja-text { font-size: 12px !important; margin-left: 5px; display: block; }
       
-      /* スマホでのダイアログエリア調整 */
       .dialog-wrapper { flex-direction: column; align-items: center; gap: 10px; }
-      .menu-image { width: 60%; max-width: 200px; } /* 画像を少し小さくして中央へ */
+      .menu-image { width: 60%; max-width: 200px; }
       #script-container { width: 90%; }
 
       .script-line { font-size: 16px; line-height: 2.2; margin-bottom: 10px; }
@@ -128,16 +148,15 @@
       body { background: white; padding: 0; margin: 0; }
       .controls, #read-aloud-section, .read-btn, button { display: none !important; }
       
-      /* 印刷時は画像を消してスペースを確保する設定 */
       .menu-image { display: none !important; }
       .dialog-wrapper { display: block !important; margin: 0 auto !important; width: 90% !important; }
 
-      h1 { margin-bottom: 10px !important; border-bottom: 1px solid black !important; text-align: center !important; font-size: 22px !important; }
+      h1 { margin-bottom: 10px !important; border-bottom: 1px solid black !important; text-align: center !important; font-size: 24px !important; }
       .game-main { display: flex !important; flex-direction: column !important; align-items: center !important; margin-bottom: 0 !important; gap: 5px !important; }
       #board { border: none !important; width: 480px !important; grid-template-columns: repeat(12, 40px) !important; margin-bottom: 5px !important; }
-      .cell { width: 40px !important; height: 40px !important; line-height: 40px !important; border: none !important; font-size: 22px !important; }
+      .cell { width: 40px !important; height: 40px !important; line-height: 40px !important; border: none !important; font-size: 24px !important; }
       #word-list { display: grid !important; grid-template-columns: 1fr 1fr !important; width: 480px !important; gap: 0 20px !important; margin: 0 auto !important; padding: 5px !important; border-top: 1px solid black; }
-      .word-item { font-size: 16px !important; line-height: 1.5 !important; padding: 0px !important; text-decoration: none !important; }
+      .word-item { font-size: 18px !important; line-height: 1.5 !important; padding: 0px !important; text-decoration: none !important; }
       .ja-text { font-size: 12px !important; margin-left: 8px; display: inline; }
       #script-container { border-top: 1px solid black; margin: 0 auto !important; padding-top: 10px !important; width: 100% !important; box-shadow: none !important; }
       .script-line { font-size: 16px !important; line-height: 2.5 !important; padding-left: 0 !important; text-align: left !important; margin-bottom: 5px; }
@@ -199,7 +218,6 @@
 
   <script>
     // ターゲット単語リスト
-    // en: リスト表示用, search: パズル内検索用(スペース削除), ja: 日本語訳
     const wordsData = [
       { en: "hot cocoa",   search: "hotcocoa",   ja: "ホットココア" }, 
       { en: "milkshake",   search: "milkshake",  ja: "ミルクシェイク" },
@@ -221,25 +239,20 @@
       const wordListDiv = document.getElementById("word-list");
       board.innerHTML = ""; wordListDiv.innerHTML = ""; answerCells.clear();
       
-      // スクリプト内のすべての空欄を隠す
       document.querySelectorAll('.blank').forEach(el => el.classList.add('hidden'));
       document.getElementById('read-aloud-section').style.display = 'none';
 
-      // グリッド初期化
       grid = Array.from({length: boardSize}, () => Array(boardSize).fill(''));
       
-      // 単語を長い順に配置（search用の文字列を使用）
       let sortedWords = [...wordsData].sort((a, b) => b.search.length - a.search.length);
       
       sortedWords.forEach((word) => {
         let placed = false, attempts = 0;
         let searchWord = word.search; 
 
-        // ランダム配置試行
         while (!placed && attempts < 500) {
           attempts++;
           let isH = Math.random() < 0.5;
-          // 配置可能な開始位置の計算
           let r = Math.floor(Math.random() * (isH ? boardSize : (boardSize - searchWord.length + 1)));
           let c = Math.floor(Math.random() * (isH ? (boardSize - searchWord.length + 1) : boardSize));
           
@@ -254,24 +267,20 @@
         }
       });
 
-      // 空きマスをランダムな文字で埋める
       for(let i=0; i<boardSize; i++)
         for(let j=0; j<boardSize; j++)
           if(grid[i][j] === '') grid[i][j] = String.fromCharCode(97 + Math.floor(Math.random()*26));
 
-      // ボード生成
       grid.forEach((row, r) => row.forEach((ch, c) => {
         const cell = document.createElement("div");
         cell.className = "cell"; cell.textContent = ch;
         cell.dataset.r = r; cell.dataset.c = c;
-        // マウス・タッチイベント
         cell.addEventListener('mousedown', (e) => onStart(r, c, e));
         cell.addEventListener('mouseenter', () => onMove(r, c));
         cell.addEventListener('touchstart', (e) => { e.preventDefault(); onStart(r, c, e.touches[0]); });
         board.appendChild(cell);
       }));
 
-      // スマホスクロール防止とタッチムーブ
       board.addEventListener('touchmove', (e) => {
         e.preventDefault();
         const touch = e.touches[0];
@@ -279,7 +288,6 @@
         if (target && target.dataset.r !== undefined) onMove(parseInt(target.dataset.r), parseInt(target.dataset.c));
       });
 
-      // 単語リスト生成
       wordsData.forEach(w => {
         const div = document.createElement("div"); 
         div.className = "word-item";
@@ -294,14 +302,12 @@
       });
     }
 
-    // 全単語チェック完了判定
     function checkCompletion() {
       const total = document.querySelectorAll('.word-item').length;
       const checked = document.querySelectorAll('.word-item.checked').length;
       if (total > 0 && total === checked) document.getElementById('read-aloud-section').style.display = 'block';
     }
 
-    // 読み上げ機能
     function readScript() {
       const btn = document.getElementById('read-btn');
       const synth = window.speechSynthesis;
@@ -341,7 +347,6 @@
       synth.speak(uttr);
     }
 
-    // --- パズルロジック ---
     function canPlace(s, r, c, h) { 
         for (let i = 0; i < s.length; i++) { 
             let cr = h ? r : r + i, cc = h ? c + i : c; 
