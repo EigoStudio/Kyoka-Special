@@ -23,12 +23,14 @@
       --cell-size: 45px;
       --board-width: 540px;
       
-      /* フォント設定: Chalkboardがあればそれを、なければBalsamiq Sansを使う */
-      --hand-font: 'Chalkboard SE', 'Chalkboard', 'Balsamiq Sans', 'Comic Neue', sans-serif;
+      /* 手書きフォント設定 (タイトル・リスト用) */
+      --hand-font: 'Chalkboard SE', 'Chalkboard', 'Balsamiq Sans', cursive;
+      /* 盤面用フォント (読みやすいComic Neue) */
+      --board-font: 'Comic Neue', sans-serif;
     }
     body { font-family: 'Kosugi Maru', 'Nunito', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; background-color: #fdfaf6; padding: 20px; padding-bottom: 40px; }
     
-    /* タイトルに手書きフォントを適用 */
+    /* タイトル：手書き風 */
     h1 { 
       font-family: var(--hand-font); 
       display: table; margin: 0 auto 30px auto; font-size: 28px; font-weight: 700; color: var(--primary); border-bottom: 2px solid var(--primary); text-align: center; padding: 0 10px 5px 10px; order: 0; 
@@ -42,11 +44,11 @@
     
     #board { display: grid; grid-template-columns: repeat(12, var(--cell-size)); gap: 0; width: var(--board-width); background-color: #fff; touch-action: none; user-select: none; border: 1px solid #dcdcdc; isolation: isolate; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; }
     
-    /* パズルの文字にも手書きフォントを適用 */
+    /* パズルの文字：元の見やすいフォントに戻しました */
     .cell { 
       width: var(--cell-size); height: var(--cell-size); line-height: var(--cell-size); 
       font-size: 28px; text-align: center; font-weight: 700; 
-      font-family: var(--hand-font); /* ここを変更 */
+      font-family: var(--board-font); /* ここをComic Neueに戻しました */
       cursor: pointer; position: relative; color: #444; 
     }
     .cell::after, .cell::before { content: ""; position: absolute; z-index: -1; mix-blend-mode: multiply; pointer-events: none; }
@@ -60,10 +62,10 @@
     
     #word-list { display: flex; flex-direction: column; gap: 12px; min-width: 250px; }
     
-    /* リストの英語部分に手書きフォントを適用 */
+    /* リスト：手書き風 */
     .word-item { 
       cursor: pointer; display: flex; align-items: center; font-size: 22px; padding: 4px; transition: color 0.2s; color: #555; 
-      font-family: var(--hand-font); /* ここを変更 */
+      font-family: var(--hand-font); 
     }
     .word-item:hover { color: var(--primary); }
     .word-item.checked { color: #ccc; text-decoration: line-through; }
@@ -109,7 +111,7 @@
     .speaker-waitress { color: var(--accent); }
     .speaker-customer { color: var(--secondary); }
     
-    /* 空欄のフォントも手書きに変更 */
+    /* 空欄：手書き風 (書き込む場所なので手書きフォントが良い感じです) */
     .blank { 
       display: inline-block; min-width: 60px; border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: bold; text-align: center; padding: 0 5px; transition: color 0.5s; 
       font-family: var(--hand-font);
