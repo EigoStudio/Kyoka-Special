@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Word Search - At the Cafe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Kosugi+Maru&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* カフェ風の配色 */
+      --primary: #6F4E37; /* Coffee Brown */
+      --secondary: #F58220; /* Orange */
+      --accent: #E17055;
+      --success: #00b894;
+      
+      /* マーカー色 */
+      --marker-h: rgba(255, 200, 80, 0.6); 
+      --marker-v: rgba(130, 200, 250, 0.5);
+      --correct: rgba(111, 78, 55, 0.3); 
+
+      --cell-size: 45px;
+      --board-width: 540px;
+    }
+    body { font-family: 'Kosugi Maru', 'Nunito', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; background-color: #fdfaf6; padding: 20px; padding-bottom: 40px; }
+    h1 { display: table; margin: 0 auto 30px auto; font-size: 26px; font-weight: 700; color: var(--primary); border-bottom: 2px solid var(--primary); text-align: center; padding: 0 10px 5px 10px; order: 0; }
+    
+    .controls { position: fixed; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+    button { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: var(--primary); color: white; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: opacity 0.2s; }
+    button:hover { opacity: 0.9; }
+    
+    .game-main { display: flex; flex-direction: row; align-items: flex-start; gap: 40px; margin-bottom: 20px; order: 1; }
+    
+    #board { display: grid; grid-template-columns: repeat(12, var(--cell-size)); gap: 0; width: var(--board-width); background-color: #fff; touch-action: none; user-select: none; border: 1px solid #dcdcdc; isolation: isolate; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; }
+    
+    .cell { width: var(--cell-size); height: var(--cell-size); line-height: var(--cell-size); font-size: 28px; text-align: center; font-weight: 700; font-family: 'Comic Neue', sans-serif; cursor: pointer; position: relative; color: #444; }
+    .cell::after, .cell::before { content: ""; position: absolute; z-index: -1; mix-blend-mode: multiply; pointer-events: none; }
+    .cell.h::after, .cell.temp-h::after { display: block; left: 0; right: 0; top: 15%; bottom: 15%; background-color: var(--marker-h); }
+    .cell.v::before, .cell.temp-v::before { display: block; left: 15%; right: 15%; top: 0; bottom: 0; background-color: var(--marker-v); }
+    .cell.h-start::after, .cell.temp-h-start::after { border-top-left-radius: 20px; border-bottom-left-radius: 20px; }
+    .cell.h-end::after, .cell.temp-h-end::after { border-top-right-radius: 20px; border-bottom-right-radius: 20px; }
+    .cell.v-start::before, .cell.temp-v-start::before { border-top-left-radius: 20px; border-top-right-radius: 20px; }
+    .cell.v-end::before, .cell.temp-v-end::before { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+    .cell.show-ans { background-color: var(--correct); border-radius: 50%; color: #fff; }
+    
+    #word-list { display: flex; flex-direction: column; gap: 12px; min-width: 250px; }
+    .word-item { cursor: pointer; display: flex; align-items: center; font-size: 19px; padding: 4px; transition: color 0.2s; color: #555; }
+    .word-item:hover { color: var(--primary); }
+    .word-item.checked { color: #ccc; text-decoration: line-through; }
+    .ja-text { font-size: 13px; color: #999; margin-left: 10px; font-weight: normal; }
+    
+    /* --- 新しいレイアウト用コンテナ (画像 + 会話) --- */
+    .dialog-wrapper {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      max-width: 950px;
+      width: 100%;
+      order: 2;
+      margin-bottom: 20px;
+    }
+
+    .menu-image {
+      flex: 0 0 160px; /* 画像の幅を固定 */
+    }
+    
+    .menu-image img {
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 3px solid #333; /* アメコミ風の黒枠 */
+      box-shadow: 3px 3px 0px rgba(0,0,0,0.1);
+    }
+
+    #script-container { 
+      flex: 1; /* 残りの幅を埋める */
+      border-top: 2px dashed #ddd; 
+      padding-top: 20px; 
+      position: relative; 
+      background: white; 
+      padding: 20px; 
+      border-radius: 10px; 
+      box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+    }
+    /* ------------------------------------------- */
+
+    .script-line { font-size: 19px; line-height: 2.5; color: #333; text-align: left; margin-bottom: 15px; }
+    .speaker-name { font-weight: 800; display: inline-block; width: 90px; margin-right: 5px; }
+    .speaker-waitress { color: var(--accent); }
+    .speaker-customer { color: var(--secondary); }
+    
+    .blank { display: inline-block; min-width: 60px; border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: bold; text-align: center; padding: 0 5px; transition: color 0.5s; }
+    .blank.hidden { color: transparent; }
+    
+    #read-aloud-section { text-align: center; margin: 20px 0; order: 3; display: none; }
+    .read-btn { background: var(--success); padding: 15px 40px; font-size: 20px; border-radius: 50px; border: none; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.1s; }
+    .read-btn:active { transform: scale(0.98); }
+    .read-btn.playing { background: #ff4757; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+
+    /* 📱 スマホ用 */
+    @media screen and (max-width: 900px) {
+      h1 { font-size: 20px !important; margin-top: 50px !important; margin-bottom: 15px !important; }
+      .game-main { flex-direction: column; align-items: center; gap: 20px; }
+      :root { --cell-size: 7.5vw; --board-width: 90vw; }
+      .cell { font-size: 5.5vw; }
+      #word-list { display: grid; grid-template-columns: 1fr 1fr; width: 95%; gap: 5px 10px; margin-top: 10px; }
+      .word-item { font-size: 15px !important; line-height: 1.2; }
+      .ja-text { font-size: 11px !important; margin-left: 5px; display: block; }
+      
+      /* スマホでのダイアログエリア調整 */
+      .dialog-wrapper { flex-direction: column; align-items: center; gap: 10px; }
+      .menu-image { width: 60%; max-width: 200px; } /* 画像を少し小さくして中央へ */
+      #script-container { width: 90%; }
+
+      .script-line { font-size: 16px; line-height: 2.2; margin-bottom: 10px; }
+      .speaker-name { display: block; margin-bottom: 2px; font-size: 14px; }
+      .controls { position: relative; top: 0; left: 0; display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; margin: 20px 0; order: 4; }
+      button { flex: 1; min-width: 100px; padding: 12px; font-size: 12px; }
+    }
+
+    /* 🖨️ PDF・印刷用専用設定 */
+    @media print {
+      * { color: black !important; background: transparent !important; box-shadow: none !important; }
+      body { background: white; padding: 0; margin: 0; }
+      .controls, #read-aloud-section, .read-btn, button { display: none !important; }
+      
+      /* 印刷時は画像を消してスペースを確保する設定 */
+      .menu-image { display: none !important; }
+      .dialog-wrapper { display: block !important; margin: 0 auto !important; width: 90% !important; }
+
+      h1 { margin-bottom: 10px !important; border-bottom: 1px solid black !important; text-align: center !important; font-size: 22px !important; }
+      .game-main { display: flex !important; flex-direction: column !important; align-items: center !important; margin-bottom: 0 !important; gap: 5px !important; }
+      #board { border: none !important; width: 480px !important; grid-template-columns: repeat(12, 40px) !important; margin-bottom: 5px !important; }
+      .cell { width: 40px !important; height: 40px !important; line-height: 40px !important; border: none !important; font-size: 22px !important; }
+      #word-list { display: grid !important; grid-template-columns: 1fr 1fr !important; width: 480px !important; gap: 0 20px !important; margin: 0 auto !important; padding: 5px !important; border-top: 1px solid black; }
+      .word-item { font-size: 16px !important; line-height: 1.5 !important; padding: 0px !important; text-decoration: none !important; }
+      .ja-text { font-size: 12px !important; margin-left: 8px; display: inline; }
+      #script-container { border-top: 1px solid black; margin: 0 auto !important; padding-top: 10px !important; width: 100% !important; box-shadow: none !important; }
+      .script-line { font-size: 16px !important; line-height: 2.5 !important; padding-left: 0 !important; text-align: left !important; margin-bottom: 5px; }
+      .blank { border-bottom: 1px solid black !important; color: transparent !important; min-width: 80px !important; }
+    }
+  </style>
+</head>
+<body>
+  <h1>At the Cafe</h1>
+  
+  <div class="game-main">
+    <div id="board"></div>
+    <div id="word-list"></div>
+  </div>
+
+  <div class="dialog-wrapper">
+    <div class="menu-image">
+      <img src="drinks.jpg" alt="Drinks Menu">
+    </div>
+
+    <div id="script-container">
+      <div id="script-text">
+        <div class="script-line">
+          <span class="speaker-name speaker-waitress">Waitress:</span>
+          We have 
+          <span class="blank hidden" data-word="hotcocoa">hot cocoa</span>, 
+          <span class="blank hidden" data-word="milkshake">milkshake</span>, 
+          <span class="blank hidden" data-word="coffee">coffee</span>, 
+          <span class="blank hidden" data-word="gingerale">ginger ale</span>, 
+          <span class="blank hidden" data-word="lemonade">lemonade</span>, 
+          and 
+          <span class="blank hidden" data-word="milk">milk</span>.
+        </div>
+        <div class="script-line">
+          <span class="speaker-name speaker-customer">Customer:</span>
+          Can I have some <span class="blank hidden" data-word="lemonade">lemonade</span>?
+        </div>
+        <div class="script-line">
+          <span class="speaker-name speaker-waitress">Waitress:</span>
+          Of course. What would you like with your drink?
+        </div>
+        <div class="script-line">
+          <span class="speaker-name speaker-customer">Customer:</span>
+          <span class="blank hidden" data-word="cracker">Cracker</span>s please.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="read-aloud-section">
+    <button id="read-btn" class="read-btn" onclick="readScript()">📢 ゆっくり聴いてみる</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="initGame()">パズルをシャッフル</button>
+    <button id="ans-btn" onclick="toggleAnswers()" style="background: var(--secondary);">答えを表示</button>
+    <button onclick="window.print()" style="background: var(--success);">PDF保存 / 印刷</button>
+  </div>
+
+  <script>
+    // ターゲット単語リスト
+    // en: リスト表示用, search: パズル内検索用(スペース削除), ja: 日本語訳
+    const wordsData = [
+      { en: "hot cocoa",   search: "hotcocoa",   ja: "ホットココア" }, 
+      { en: "milkshake",   search: "milkshake",  ja: "ミルクシェイク" },
+      { en: "coffee",      search: "coffee",     ja: "コーヒー" }, 
+      { en: "ginger ale",  search: "gingerale",  ja: "ジンジャーエール" },
+      { en: "milk",        search: "milk",       ja: "牛乳" }, 
+      { en: "lemonade",    search: "lemonade",   ja: "レモネード" },
+      { en: "cracker",     search: "cracker",    ja: "クラッカー" }, 
+      { en: "cheese",      search: "cheese",     ja: "チーズ" },
+      { en: "marshmallow", search: "marshmallow", ja: "マシュマロ" }, 
+      { en: "cookie",      search: "cookie",     ja: "クッキー" }
+    ];
+
+    const boardSize = 12;
+    let grid = [], answerCells = new Set(), isDragging = false, dragType = null, startR = null, startC = null, isEraser = false;
+
+    function initGame() {
+      const board = document.getElementById("board");
+      const wordListDiv = document.getElementById("word-list");
+      board.innerHTML = ""; wordListDiv.innerHTML = ""; answerCells.clear();
+      
+      // スクリプト内のすべての空欄を隠す
+      document.querySelectorAll('.blank').forEach(el => el.classList.add('hidden'));
+      document.getElementById('read-aloud-section').style.display = 'none';
+
+      // グリッド初期化
+      grid = Array.from({length: boardSize}, () => Array(boardSize).fill(''));
+      
+      // 単語を長い順に配置（search用の文字列を使用）
+      let sortedWords = [...wordsData].sort((a, b) => b.search.length - a.search.length);
+      
+      sortedWords.forEach((word) => {
+        let placed = false, attempts = 0;
+        let searchWord = word.search; 
+
+        // ランダム配置試行
+        while (!placed && attempts < 500) {
+          attempts++;
+          let isH = Math.random() < 0.5;
+          // 配置可能な開始位置の計算
+          let r = Math.floor(Math.random() * (isH ? boardSize : (boardSize - searchWord.length + 1)));
+          let c = Math.floor(Math.random() * (isH ? (boardSize - searchWord.length + 1) : boardSize));
+          
+          if (canPlace(searchWord, r, c, isH)) {
+            for (let i = 0; i < searchWord.length; i++) {
+              let currR = isH ? r : r + i, currC = isH ? c + i : c;
+              grid[currR][currC] = searchWord[i].toLowerCase();
+              answerCells.add(`${currR}-${currC}`);
+            }
+            placed = true;
+          }
+        }
+      });
+
+      // 空きマスをランダムな文字で埋める
+      for(let i=0; i<boardSize; i++)
+        for(let j=0; j<boardSize; j++)
+          if(grid[i][j] === '') grid[i][j] = String.fromCharCode(97 + Math.floor(Math.random()*26));
+
+      // ボード生成
+      grid.forEach((row, r) => row.forEach((ch, c) => {
+        const cell = document.createElement("div");
+        cell.className = "cell"; cell.textContent = ch;
+        cell.dataset.r = r; cell.dataset.c = c;
+        // マウス・タッチイベント
+        cell.addEventListener('mousedown', (e) => onStart(r, c, e));
+        cell.addEventListener('mouseenter', () => onMove(r, c));
+        cell.addEventListener('touchstart', (e) => { e.preventDefault(); onStart(r, c, e.touches[0]); });
+        board.appendChild(cell);
+      }));
+
+      // スマホスクロール防止とタッチムーブ
+      board.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && target.dataset.r !== undefined) onMove(parseInt(target.dataset.r), parseInt(target.dataset.c));
+      });
+
+      // 単語リスト生成
+      wordsData.forEach(w => {
+        const div = document.createElement("div"); 
+        div.className = "word-item";
+        div.innerHTML = `<span>□ ${w.en}<span class="ja-text">${w.ja}</span></span>`;
+        div.onclick = () => {
+          div.classList.toggle("checked");
+          document.querySelectorAll(`.blank[data-word="${w.search}"]`).forEach(el => 
+            div.classList.contains("checked") ? el.classList.remove('hidden') : el.classList.add('hidden'));
+          checkCompletion();
+        };
+        wordListDiv.appendChild(div);
+      });
+    }
+
+    // 全単語チェック完了判定
+    function checkCompletion() {
+      const total = document.querySelectorAll('.word-item').length;
+      const checked = document.querySelectorAll('.word-item.checked').length;
+      if (total > 0 && total === checked) document.getElementById('read-aloud-section').style.display = 'block';
+    }
+
+    // 読み上げ機能
+    function readScript() {
+      const btn = document.getElementById('read-btn');
+      const synth = window.speechSynthesis;
+
+      if (synth.speaking) {
+        synth.cancel();
+        btn.textContent = "📢 ゆっくり聴いてみる";
+        btn.classList.remove('playing');
+        return;
+      }
+
+      let fullText = document.getElementById('script-text').innerText;
+      let cleanText = fullText.replace(/^(Waitress:|Customer:)/gm, "");
+      
+      const uttr = new SpeechSynthesisUtterance(cleanText);
+      uttr.lang = 'en-US';
+      uttr.rate = 0.8; 
+      uttr.pitch = 1.0;
+
+      const voices = synth.getVoices();
+      const targetVoice = voices.find(v => v.name === 'Google US English') || 
+                          voices.find(v => v.name === 'Samantha') || 
+                          voices.find(v => v.lang === 'en-US') ||
+                          voices.find(v => v.lang.startsWith('en'));
+
+      if (targetVoice) uttr.voice = targetVoice;
+
+      uttr.onstart = () => {
+        btn.textContent = "⏹️ 読み上げを止める";
+        btn.classList.add('playing');
+      };
+      uttr.onend = () => {
+        btn.textContent = "📢 ゆっくり聴いてみる";
+        btn.classList.remove('playing');
+      };
+
+      synth.speak(uttr);
+    }
+
+    // --- パズルロジック ---
+    function canPlace(s, r, c, h) { 
+        for (let i = 0; i < s.length; i++) { 
+            let cr = h ? r : r + i, cc = h ? c + i : c; 
+            if (cr >= boardSize || cc >= boardSize) return false;
+            if (grid[cr][cc] !== '' && grid[cr][cc] !== s[i]) return false; 
+        } 
+        return true; 
+    }
+    
+    function onStart(r, c, e) { isDragging = true; startR = r; startC = c; dragType = null; const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`); isEraser = cell.classList.contains('h') || cell.classList.contains('v'); }
+    function onMove(r, c) { if (!isDragging) return; if (dragType === null) { if (r !== startR) dragType = 'v'; else if (c !== startC) dragType = 'h'; else return; } document.querySelectorAll('.temp-h, .temp-v').forEach(el => el.classList.remove('temp-h', 'temp-v', 'temp-h-start', 'temp-h-end', 'temp-v-start', 'temp-v-end')); const minR = Math.min(startR, (dragType === 'h' ? startR : r)), maxR = Math.max(startR, (dragType === 'h' ? startR : r)); const minC = Math.min(startC, (dragType === 'v' ? startC : c)), maxC = Math.max(startC, (dragType === 'v' ? startC : c)); for (let i = minR; i <= maxR; i++) { for (let j = minC; j <= maxC; j++) { const el = document.querySelector(`.cell[data-r="${i}"][data-c="${j}"]`); if (el) { el.classList.add('temp-' + dragType); if (dragType === 'h') { if (j === minC) el.classList.add('temp-h-start'); if (j === maxC) el.classList.add('temp-h-end'); } else { if (i === minR) el.classList.add('temp-v-start'); if (i === maxR) el.classList.add('temp-v-end'); } } } } }
+    function onEnd() { if (!isDragging) return; isDragging = false; const type = dragType; document.querySelectorAll('.temp-' + type).forEach(el => { el.classList.remove('temp-' + type, 'temp-' + type + '-start', 'temp-' + type + '-end'); isEraser ? el.classList.remove(type) : el.classList.add(type); }); updateCaps(); }
+    function updateCaps() { document.querySelectorAll('.cell').forEach(cell => { cell.classList.remove('h-start', 'h-end', 'v-start', 'v-end'); const r = +cell.dataset.r, c = +cell.dataset.c; if (cell.classList.contains('h')) { if (!document.querySelector(`.cell[data-r="${r}"][data-c="${c-1}"]`)?.classList.contains('h')) cell.classList.add('h-start'); if (!document.querySelector(`.cell[data-r="${r}"][data-c="${c+1}"]`)?.classList.contains('h')) cell.classList.add('h-end'); } if (cell.classList.contains('v')) { if (!document.querySelector(`.cell[data-r="${r-1}"][data-c="${c}"]`)?.classList.contains('v')) cell.classList.add('v-start'); if (!document.querySelector(`.cell[data-r="${r+1}"][data-c="${c}"]`)?.classList.contains('v')) cell.classList.add('v-end'); } }); }
+    window.addEventListener('mouseup', onEnd); window.addEventListener('touchend', onEnd);
+    function toggleAnswers() { const btn = document.getElementById("ans-btn"); const isShowing = btn.textContent === "答えを隠す"; btn.textContent = isShowing ? "答えを表示" : "答えを隠す"; document.querySelectorAll(".cell").forEach(cell => { if (answerCells.has(`${cell.dataset.r}-${cell.dataset.c}`)) cell.classList.toggle("show-ans", !isShowing); }); }
+    
+    window.onload = initGame;
+  </script>
+</body>
+</html>
