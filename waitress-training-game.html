@@ -66,7 +66,6 @@
 </div>
 
 <script>
-// 最新のイラストとオーダーに基づいたデータに変更しました
 const quizData = [
     // 前半: Drinks (No.1 - No.6)
     { type: "Drink", num: 1, name: "hot cocoa", article: "some", options: ["hot cocoa", "coffee", "milk", "ginger ale"] },
@@ -89,19 +88,32 @@ let currentIndex = 0;
 let selectedWord = "";
 let selectedBtn = null;
 
+// ★ここが更新された音声読み上げ関数です★
 function speak(text) {
-    window.speechSynthesis.cancel();
+    const synth = window.speechSynthesis;
+    synth.cancel(); // 前の音声をキャンセル
+
     const uttr = new SpeechSynthesisUtterance(text);
     uttr.lang = "en-US";
-    uttr.rate = 0.8;
-// 高さ：1が標準。高くすると子供っぽく、低くすると大人っぽくなります
-    uttr.pitch = 1.0;
-    window.speechSynthesis.speak(uttr);
+    uttr.rate = 0.8; // 少しゆっくり
+    uttr.pitch = 1.0; // 標準の高さ
+
+    // ワードサーチゲームと同じ声を探すロジック
+    const voices = synth.getVoices();
+    const targetVoice = voices.find(v => v.name === 'Google US English') || 
+                        voices.find(v => v.name === 'Samantha') || 
+                        voices.find(v => v.lang === 'en-US') ||
+                        voices.find(v => v.lang.startsWith('en'));
+
+    if (targetVoice) {
+        uttr.voice = targetVoice;
+    }
+
+    synth.speak(uttr);
 }
 
 function speakCurrentQuestion() {
     const q = quizData[currentIndex];
-    // No.7以降も正しく読み上げます
     speak(`${q.type} Number ${q.num}`);
 }
 
@@ -141,7 +153,11 @@ function loadQuestion() {
     }
 
     document.getElementById('questionText').innerHTML = `${q.type} No.${q.num} is... <br><span style="color:var(--accent-pink)">${selectedWord || '???'}</span>`;
-    speakCurrentQuestion();
+    
+    // ページ読み込み時は音声リストの取得に少し時間がかかる場合があるため、わずかに遅らせて再生
+    setTimeout(() => {
+        speakCurrentQuestion();
+    }, 100);
 
     const grid = document.getElementById('choicesGrid');
     grid.innerHTML = "";
