@@ -23,7 +23,7 @@
       --cell-size: 45px;
       --board-width: 540px;
       
-      /* 手書きフォント設定 (タイトル・リスト用) */
+      /* 手書きフォント設定 (タイトル・リスト・ダイアログ用) */
       --hand-font: 'Chalkboard SE', 'Chalkboard', 'Balsamiq Sans', cursive;
       /* 盤面用フォント (読みやすいComic Neue) */
       --board-font: 'Comic Neue', sans-serif;
@@ -44,11 +44,11 @@
     
     #board { display: grid; grid-template-columns: repeat(12, var(--cell-size)); gap: 0; width: var(--board-width); background-color: #fff; touch-action: none; user-select: none; border: 1px solid #dcdcdc; isolation: isolate; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border-radius: 4px; overflow: hidden; }
     
-    /* パズルの文字：元の見やすいフォントに戻しました */
+    /* パズルの文字：読みやすいComic Neue */
     .cell { 
       width: var(--cell-size); height: var(--cell-size); line-height: var(--cell-size); 
       font-size: 28px; text-align: center; font-weight: 700; 
-      font-family: var(--board-font); /* ここをComic Neueに戻しました */
+      font-family: var(--board-font); 
       cursor: pointer; position: relative; color: #444; 
     }
     .cell::after, .cell::before { content: ""; position: absolute; z-index: -1; mix-blend-mode: multiply; pointer-events: none; }
@@ -106,12 +106,20 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
     }
 
-    .script-line { font-size: 19px; line-height: 2.5; color: #333; text-align: left; margin-bottom: 15px; }
+    /* ダイアログ（会話）：手書き風に変更 */
+    .script-line { 
+      font-size: 20px; 
+      line-height: 2.5; 
+      color: #333; 
+      text-align: left; 
+      margin-bottom: 15px;
+      font-family: var(--hand-font); /* ここを手書きフォントに */
+    }
     .speaker-name { font-weight: 800; display: inline-block; width: 90px; margin-right: 5px; }
     .speaker-waitress { color: var(--accent); }
     .speaker-customer { color: var(--secondary); }
     
-    /* 空欄：手書き風 (書き込む場所なので手書きフォントが良い感じです) */
+    /* 空欄：手書き風 */
     .blank { 
       display: inline-block; min-width: 60px; border-bottom: 2px solid var(--primary); color: var(--primary); font-weight: bold; text-align: center; padding: 0 5px; transition: color 0.5s; 
       font-family: var(--hand-font);
