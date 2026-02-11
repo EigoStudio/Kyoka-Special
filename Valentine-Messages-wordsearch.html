@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Valentine Messages - Word Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Balsamiq+Sans:wght@400;700&family=Comic+Neue:wght@700&family=Kosugi+Maru&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #D63031;
+      --secondary: #FD79A8;
+      --marker-h: rgba(253, 121, 168, 0.5); 
+      --marker-v: rgba(130, 200, 250, 0.4);
+      --correct: rgba(214, 48, 49, 0.3); 
+      --cell-size: 45px;
+      --board-width: 540px;
+      --hand-font: 'Chalkboard SE', 'Chalkboard', 'Balsamiq Sans', cursive;
+      --board-font: 'Comic Neue', sans-serif;
+    }
+    body { font-family: 'Kosugi Maru', 'Nunito', sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; background-color: #FFF5F7; padding: 20px; touch-action: manipulation; }
+    
+    /* タイトルを最上部に配置（orderで制御） */
+    h1 { font-family: var(--hand-font); font-size: 32px; color: var(--primary); border-bottom: 3px solid var(--secondary); margin-bottom: 30px; order: -2; }
+    
+    .controls { position: fixed; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 100; }
+    button { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: var(--primary); color: white; font-size: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+    .game-main { display: flex; flex-direction: row; align-items: flex-start; gap: 40px; margin-bottom: 20px; order: -1; }
+    
+    #board { display: grid; grid-template-columns: repeat(12, var(--cell-size)); gap: 0; width: var(--board-width); background-color: #fff; touch-action: none; user-select: none; border: none; isolation: isolate; border-radius: 12px; overflow: hidden; }
+    
+    .cell { width: var(--cell-size); height: var(--cell-size); line-height: var(--cell-size); font-size: 28px; text-align: center; font-weight: 700; font-family: var(--board-font); cursor: pointer; position: relative; color: #444; border: none; }
+    
+    /* マーカー設定：先端を丸っこく（カプセル型） */
+    .cell::after, .cell::before { content: ""; position: absolute; z-index: -1; mix-blend-mode: multiply; pointer-events: none; }
+    .cell.h::after, .cell.temp-h::after { display: block; left: 0; right: 0; top: 15%; bottom: 15%; background-color: var(--marker-h); }
+    .cell.v::before, .cell.temp-v::before { display: block; left: 15%; right: 15%; top: 0; bottom: 0; background-color: var(--marker-v); }
+    
+    .cell.h-start::after, .cell.temp-h-start::after { border-top-left-radius: 25px; border-bottom-left-radius: 25px; left: 2px; }
+    .cell.h-end::after, .cell.temp-h-end::after { border-top-right-radius: 25px; border-bottom-right-radius: 25px; right: 2px; }
+    .cell.v-start::before, .cell.temp-v-start::before { border-top-left-radius: 25px; border-top-right-radius: 25px; top: 2px; }
+    .cell.v-end::before, .cell.temp-v-end::before { border-bottom-left-radius: 25px; border-bottom-right-radius: 25px; bottom: 2px; }
+    
+    .cell.show-ans { background-color: var(--correct); border-radius: 50%; color: #fff; }
+    
+    #word-list { display: flex; flex-direction: column; gap: 8px; min-width: 250px; }
+    .word-item { cursor: pointer; display: flex; align-items: center; font-size: 20px; color: #555; font-family: var(--hand-font); text-transform: lowercase; }
+    .word-item.checked { color: #ccc; text-decoration: line-through; }
+    .ja-hint { font-size: 14px; color: #999; margin-left: 10px; font-family: 'Kosugi Maru', sans-serif; text-transform: none; }
+    
+    #script-container { 
+      width: 100%; max-width: 750px; background: white; border: 2px dashed var(--secondary); border-radius: 15px; 
+      padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+      display: flex; flex-direction: column; align-items: center; order: 0;
+    }
+    .script-inner { width: fit-content; }
+    .script-line { display: flex; align-items: baseline; font-size: 20px; font-family: var(--hand-font); margin-bottom: 15px; white-space: nowrap; }
+    .eng-msg { text-align: left; margin-right: 25px; min-width: 320px; } 
+    .ja-msg { font-size: 14px; color: #888; font-family: 'Kosugi Maru', sans-serif; text-align: left; }
+    .blank { display: inline-block; min-width: 100px; border-bottom: 2px solid var(--secondary); color: var(--primary); text-align: center; font-weight: bold; padding: 0 5px; }
+    .blank.hidden { color: transparent; }
+
+    /* 🖨️ 印刷設定 */
+    @media print {
+      body { background: white !important; padding: 0; display: block !important; text-align: center; }
+      .controls, button { display: none !important; }
+      h1 { color: black !important; border-bottom: 1px solid black !important; font-size: 24px !important; margin: 0 auto 15px auto !important; width: fit-content; display: block !important; }
+      .game-main { display: block !important; margin-bottom: 10px !important; }
+      #board { border: none !important; width: 440px !important; grid-template-columns: repeat(12, 36px) !important; margin: 0 auto 15px auto !important; }
+      .cell { width: 36px !important; height: 36px !important; font-size: 20px !important; color: black !important; }
+      #word-list { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; width: 90% !important; margin: 0 auto 30px auto !important; gap: 8px !important; border-top: 1px solid #ccc; padding-top: 15px; }
+      .word-item { color: black !important; font-size: 15px !important; text-align: left; }
+      .ja-hint { font-size: 11px !important; display: block; margin-left: 18px; }
+      #script-container { border: none !important; box-shadow: none !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; display: block !important; }
+      .script-inner { margin: 0 auto !important; width: 100% !important; max-width: 520px !important; }
+      .script-line { font-size: 16px !important; margin-bottom: 22px !important; display: flex !important; justify-content: flex-start !important; }
+      .eng-msg { min-width: 290px !important; margin-right: 15px !important; }
+      .blank { border-bottom: 2px solid black !important; min-width: 120px !important; color: transparent !important; }
+      .ja-msg { color: #444 !important; font-size: 11px !important; }
+    }
+
+    @media screen and (max-width: 800px) {
+      .game-main { flex-direction: column; align-items: center; }
+      :root { --cell-size: 8vw; --board-width: 96vw; }
+      #word-list { display: grid; grid-template-columns: 1fr 1fr; width: 90%; }
+      .script-line { white-space: normal; flex-direction: column; align-items: flex-start; }
+      .eng-msg { min-width: auto; }
+      .ja-msg { margin-top: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Valentine Messages</h1>
+  <div class="game-main">
+    <div id="board"></div>
+    <div id="word-list"></div>
+  </div>
+  <div id="script-container">
+    <div class="script-inner">
+      <div class="script-line"><span class="eng-msg">1. Be <span class="blank hidden" data-word="mine">mine</span>!</span> <span class="ja-msg">わたしの 大切な人に なって！</span></div>
+      <div class="script-line"><span class="eng-msg">2. I <span class="blank hidden" data-word="love">love</span> you!</span> <span class="ja-msg">だいすきだよ！</span></div>
+      <div class="script-line"><span class="eng-msg">3. <span class="blank hidden" data-word="hugs" data-capitalize="true">hugs</span> for you!</span> <span class="ja-msg">ぎゅっ！を あげるね！</span></div>
+      <div class="script-line"><span class="eng-msg">4. To my <span class="blank hidden" data-word="bestie">bestie</span>!</span> <span class="ja-msg">大親友の きみへ！</span></div>
+      <div class="script-line"><span class="eng-msg">5. <span class="blank hidden" data-word="text" data-capitalize="true">text</span> me!</span> <span class="ja-msg">（けいたいに）メッセージしてね！</span></div>
+      <div class="script-line"><span class="eng-msg">6. <span class="blank hidden" data-word="hugs" data-capitalize="true">hugs</span> and <span class="blank hidden" data-word="kisses">kisses</span>!</span> <span class="ja-msg">ハグと キスを！</span></div>
+      <div class="script-line"><span class="eng-msg">7. <span class="blank hidden" data-word="happy" data-force-cap="true">happy</span> <span class="blank hidden" data-word="valentine" data-force-cap="true">valentine</span>'s <span class="blank hidden" data-word="day" data-force-cap="true">day</span>!</span> <span class="ja-msg"></span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button onclick="initGame()">Shuffle</button>
+    <button id="ans-btn" onclick="toggleAnswers()">Show Answers</button>
+    <button onclick="window.print()" style="background: #27ae60;">Print to PDF</button>
+  </div>
+
+  <script>
+    const wordsData = [
+      { en: "mine", ja: "わたしのもの" }, { en: "love", ja: "だいすき" },
+      { en: "bestie", ja: "しんゆう" }, { en: "text", ja: "メール" }, 
+      { en: "hugs", ja: "ハグ" }, { en: "kisses", ja: "キス" }, 
+      { en: "happy", ja: "ハッピー" }, { en: "valentine", ja: "バレンタイン" }, 
+      { en: "day", ja: "ひ" }
+    ];
+    const boardSize = 12;
+    let grid = [], answerCells = new Set(), isDragging = false, dragType = null, startR = null, startC = null, isEraser = false;
+
+    function initGame() {
+      const board = document.getElementById("board");
+      const wordListDiv = document.getElementById("word-list");
+      board.innerHTML = ""; wordListDiv.innerHTML = ""; answerCells.clear();
+      document.querySelectorAll('.blank').forEach(el => { el.classList.add('hidden'); el.textContent = el.dataset.word; });
+
+      grid = Array.from({length: boardSize}, () => Array(boardSize).fill(''));
+      [...wordsData].sort((a,b)=>b.en.length-a.en.length).forEach(word => {
+        let placed = false, attempts = 0;
+        while (!placed && attempts < 500) {
+          attempts++;
+          let isH = Math.random() < 0.5;
+          let r = Math.floor(Math.random() * (isH ? boardSize : (boardSize - word.en.length + 1)));
+          let c = Math.floor(Math.random() * (isH ? (boardSize - word.en.length + 1) : boardSize));
+          if (Array.from({length: word.en.length}).every((_,i)=> grid[isH?r:r+i][isH?c+i:c]==='')) {
+            for (let i=0; i<word.en.length; i++) {
+              let cr = isH?r:r+i, cc = isH?c+i:c;
+              grid[cr][cc] = word.en[i]; answerCells.add(`${cr}-${cc}`);
+            }
+            placed = true;
+          }
+        }
+      });
+      for(let i=0; i<boardSize; i++)
+        for(let j=0; j<boardSize; j++)
+          if(grid[i][j]==='') grid[i][j] = String.fromCharCode(97+Math.floor(Math.random()*26));
+
+      grid.forEach((row, r) => row.forEach((ch, c) => {
+        const cell = document.createElement("div");
+        cell.className = "cell"; cell.textContent = ch;
+        cell.dataset.r = r; cell.dataset.c = c;
+        cell.addEventListener('mousedown', (e) => onStart(r, c, e));
+        cell.addEventListener('mouseenter', () => onMove(r, c));
+        cell.addEventListener('touchstart', (e) => { e.preventDefault(); onStart(r, c, e.touches[0]); });
+        board.appendChild(cell);
+      }));
+
+      board.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const target = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (target && target.dataset.r !== undefined) onMove(parseInt(target.dataset.r), parseInt(target.dataset.c));
+      });
+
+      wordsData.forEach(w => {
+        const div = document.createElement("div"); div.className = "word-item";
+        div.innerHTML = `<span>□ ${w.en}<span class="ja-hint">(${w.ja})</span></span>`;
+        div.onclick = () => {
+          div.classList.toggle("checked");
+          document.querySelectorAll(`.blank[data-word="${w.en}"]`).forEach(el => {
+            el.classList.toggle('hidden');
+            let txt = el.dataset.word;
+            if (el.dataset.capitalize === "true" || el.dataset.forceCap === "true") txt = txt.charAt(0).toUpperCase() + txt.slice(1);
+            el.textContent = txt;
+          });
+        };
+        wordListDiv.appendChild(div);
+      });
+    }
+
+    function onStart(r, c, e) { isDragging = true; startR = r; startC = c; dragType = null; const cell = document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`); isEraser = cell.classList.contains('h') || cell.classList.contains('v'); }
+    function onMove(r, c) { 
+      if (!isDragging) return; 
+      if (dragType === null) { if (r !== startR) dragType = 'v'; else if (c !== startC) dragType = 'h'; else return; } 
+      document.querySelectorAll('.temp-h, .temp-v').forEach(el => el.classList.remove('temp-h', 'temp-v', 'temp-h-start', 'temp-h-end', 'temp-v-start', 'temp-v-end')); 
+      const minR = Math.min(startR, (dragType === 'h' ? startR : r)), maxR = Math.max(startR, (dragType === 'h' ? startR : r)); 
+      const minC = Math.min(startC, (dragType === 'v' ? startC : c)), maxC = Math.max(startC, (dragType === 'v' ? startC : c)); 
+      for (let i = minR; i <= maxR; i++) { for (let j = minC; j <= maxC; j++) { const el = document.querySelector(`.cell[data-r="${i}"][data-c="${j}"]`); if (el) { el.classList.add('temp-' + dragType); if (dragType === 'h') { if (j === minC) el.classList.add('temp-h-start'); if (j === maxC) el.classList.add('temp-h-end'); } else { if (i === minR) el.classList.add('temp-v-start'); if (i === maxR) el.classList.add('temp-v-end'); } } } } 
+    }
+    function onEnd() { if (!isDragging) return; isDragging = false; const type = dragType; document.querySelectorAll('.temp-' + type).forEach(el => { el.classList.remove('temp-' + type, 'temp-' + type + '-start', 'temp-' + type + '-end'); isEraser ? el.classList.remove(type) : el.classList.add(type); }); updateCaps(); }
+    function updateCaps() { 
+      document.querySelectorAll('.cell').forEach(cell => { 
+        cell.classList.remove('h-start', 'h-end', 'v-start', 'v-end'); 
+        const r = +cell.dataset.r, c = +cell.dataset.c; 
+        if (cell.classList.contains('h')) { if (!document.querySelector(`.cell[data-r="${r}"][data-c="${c-1}"]`)?.classList.contains('h')) cell.classList.add('h-start'); if (!document.querySelector(`.cell[data-r="${r}"][data-c="${c+1}"]`)?.classList.contains('h')) cell.classList.add('h-end'); }
+        if (cell.classList.contains('v')) { if (!document.querySelector(`.cell[data-r="${r-1}"][data-c="${c}"]`)?.classList.contains('v')) cell.classList.add('v-start'); if (!document.querySelector(`.cell[data-r="${r+1}"][data-c="${c}"]`)?.classList.contains('v')) cell.classList.add('v-end'); }
+      }); 
+    }
+    window.addEventListener('mouseup', onEnd); window.addEventListener('touchend', onEnd);
+    function toggleAnswers() {
+      const btn = document.getElementById("ans-btn"); const isShowing = btn.textContent === "Hide Answers"; btn.textContent = isShowing ? "Show Answers" : "Hide Answers";
+      document.querySelectorAll(".cell").forEach(cell => { if (answerCells.has(`${cell.dataset.r}-${cell.dataset.c}`)) cell.classList.toggle("show-ans", !isShowing); });
+    }
+    window.onload = initGame;
+  </script>
+</body>
+</html>
